@@ -1,0 +1,27 @@
+[
+    {
+        "name": "Cloths",
+        "price": 1000,
+        "stock": 100
+    },
+    {
+        "name": "salt",
+        "price": 40,
+        "stock": 100
+    },
+    {
+        "name": "oil",
+        "price": 120,
+        "stock": 80
+    },
+    {
+        "name": "iphone",
+        "price": 70000,
+        "stock": 50
+    },
+    {
+        "name": "iphone",
+        "price": 70000,
+        "stock": 50
+    }
+]
