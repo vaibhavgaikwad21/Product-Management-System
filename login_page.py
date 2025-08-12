@@ -1,42 +1,85 @@
-# login_page.py
-
 import customtkinter as ctk
 from tkinter import messagebox
-from utils.file_manager import load_json
+import json
+import os
+import re  # Import regex module for email validation
+
+USERS_FILE = "data/users.json"
+
+def load_json(filepath):
+    if not os.path.exists(filepath):
+        return []
+    with open(filepath, "r") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return []
+
+def save_json(filepath, data):
+    with open(filepath, "w") as f:
+        json.dump(data, f, indent=4)
+
 
 class LoginPage(ctk.CTkFrame):
     def __init__(self, master, on_login_success):
         super().__init__(master)
         self.master = master
         self.on_login_success = on_login_success
-        self.pack(padx=40, pady=40, fill="both", expand=True)
+        self.configure(fg_color="#f5f6fa")
 
-        ctk.CTkLabel(self, text="🔐 Login", font=ctk.CTkFont(size=24, weight="bold")).pack(pady=(0, 20))
+        title = ctk.CTkLabel(self, text="🔐 Welcome Back", font=("Arial", 22, "bold"), text_color="#2f3640")
+        title.pack(pady=(25, 10))
 
-        # Username
-        self.username_entry = ctk.CTkEntry(self, placeholder_text="Username")
-        self.username_entry.pack(pady=10)
+        subtitle = ctk.CTkLabel(self, text="Login to continue", font=("Arial", 14), text_color="#718093")
+        subtitle.pack(pady=(0, 20))
 
-        # Password
-        self.password_entry = ctk.CTkEntry(self, placeholder_text="Password", show="*")
+        # Email field
+        self.email_entry = ctk.CTkEntry(self, placeholder_text="Email", width=300, height=40, corner_radius=12)
+        self.email_entry.pack(pady=10)
+        self.email_entry.bind("<Return>", lambda event: self.password_entry.focus())  # Enter moves to password
+
+        # Password field
+        self.password_entry = ctk.CTkEntry(self, placeholder_text="Password", show="*", width=300, height=40, corner_radius=12)
         self.password_entry.pack(pady=10)
+        self.password_entry.bind("<Return>", lambda event: self.login())  # Enter triggers login
 
-        # Login button
-        ctk.CTkButton(self, text="Login", command=self.login).pack(pady=20)
+        # Login Button
+        self.login_btn = ctk.CTkButton(
+            self, text="Login", width=300, height=40, corner_radius=12, fg_color="#273c75",
+            hover_color="#192a56", command=self.login
+        )
+        self.login_btn.pack(pady=(15, 10))
 
     def login(self):
-        user = self.username_entry.get()
-        pwd = self.password_entry.get()
-        if not user or not pwd:
-            messagebox.showwarning("Input Error", "Username and password cannot be empty.")
+        email = self.email_entry.get().strip()
+        password = self.password_entry.get().strip()
+
+        if not email or not password:
+            messagebox.showwarning("Input Error", "Please enter both email and password.")
             return
 
-        data = load_json("login.json")
+        # Simple email format validation
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            messagebox.showerror("Invalid Email", "Please enter a valid email address.")
+            return
 
-        if not isinstance(data, dict):
-            data = {}
+        users = load_json(USERS_FILE)
 
-        if user in data and data[user] == pwd:
-            self.on_login_success()
+        # Check if user exists
+        user = next((u for u in users if u["email"] == email), None)
+
+        if user:
+            # User exists, check password
+            if user["password"] == password:
+                messagebox.showinfo("Login Success", "Welcome back!")
+                if self.on_login_success:
+                    self.on_login_success()
+            else:
+                messagebox.showerror("Login Failed", "Invalid password.")
         else:
-            messagebox.showerror("Login Failed", "Invalid username or password.")
+            # New user, save credentials
+            users.append({"email": email, "password": password})
+            save_json(USERS_FILE, users)
+            messagebox.showinfo("Registration Success", "New user registered and logged in!")
+            if self.on_login_success:
+                self.on_login_success()
